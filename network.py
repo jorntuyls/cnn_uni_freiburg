@@ -10,6 +10,8 @@ import theano
 import theano.tensor as T
 import lasagne
 
+import visualization as V
+
 
 '''
 Image arrays have the shape (N, 3, 32, 32), where N is the size of the
@@ -21,7 +23,7 @@ Each image has an associated 40-dimensional attribute vector. The names of the
 attributes are stored in self.attr_names.
 '''
 
-data_path = "/home/lmb/Celeb_data"
+data_path = "/Users/jorntuyls/Desktop/Celeb_data"#"/home/lmb/Celeb_data"
 
 
 class Network:
@@ -84,6 +86,19 @@ class Network:
 
         return network
 
+    # Code of following function is fully copied from
+    #   https://github.com/Lasagne/Lasagne/tree/master/examples
+    def iterate_minibatches(self, inputs, targets, batchsize, shuffle):
+        assert len(inputs) == len(targets)
+        if shuffle:
+            indices = np.arange(len(inputs))
+            np.random.shuffle(indices)
+        for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
+            if shuffle:
+                excerpt = indices[start_idx:start_idx + batchsize]
+            else:
+                excerpt = slice(start_idx, start_idx + batchsize)
+            yield inputs[excerpt], targets[excerpt]
 
     def train_network(self, network, X_train, y_train, X_val, y_val, input_var,
                 num_epochs=500, batch_size=512, descent_type="sgd"):
@@ -91,6 +106,8 @@ class Network:
         # Create Theano variable for output vector
         true_output = T.ivector('targets')
 
+        # determinitic = False because we want to use dropout in training
+        #   the network
         prediction = lasagne.layers.get_output(network, deterministic=False)
         loss = lasagne.objectives.categorical_crossentropy(prediction, true_output).mean()
 
@@ -108,6 +125,7 @@ class Network:
         all_params = lasagne.layers.get_all_params(network)
 
         # Use different techniques for updates
+        # The standard technique is Stochastic Gradient Descent
         updates = lasagne.updates.sgd(loss, all_params, learning_rate=0.01)
         if (descent_type=="sgd"):
             pass
@@ -116,13 +134,14 @@ class Network:
 
         train = theano.function([input_var, true_output], loss, updates=updates)
         val = theano.function([input_var, true_output], val_loss)
-        # This is the function we'll use to compute the network's output given an input
-        # (e.g., for computing accuracy). Again, we don't want to apply dropout here
-        # so we set the deterministic kwarg to True.
+
         get_output = theano.function([input_var], lasagne.layers.get_output(network, deterministic=True))
 
-        # Keep track of which batch we're training with
-        batch_idx = 0
+        # Keep track of training loss, validation loss and validation accuracy for
+        #   visualization purposes
+        lst_loss_train = []
+        lst_loss_val = []
+        lst_acc = []
         for epoch in range(num_epochs):
 
             train_err = 0
@@ -145,40 +164,35 @@ class Network:
                 #val_acc += acc
                 val_batches += 1
 
-            # Then we print the results for this epoch:
-            print("Epoch {} of {} took {:.3f}s".format(
-                epoch + 1, num_epochs, time.time() - start_time))
-            print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
-            print("  validation loss:\t\t{:.6f}".format(val_err / val_batches))
-
-            train_output = get_output(X_train)
-            train_predictions = np.argmax(train_output, axis=1)
+            # train_output = get_output(X_train)
+            # train_predictions = np.argmax(train_output, axis=1)
             # print(train_predictions)
             # print(y_train)
+
             # Compute the network's output on the validation data
             val_output = get_output(X_val)
             # The predicted class is just the index of the largest probability in the output
             val_predictions = np.argmax(val_output, axis=1)
             # The accuracy is the average number of correct predictions
             accuracy = np.mean(val_predictions == y_train)
-            print(" validation accuracy: {}".format(accuracy))
+
+            # Add training loss, validation loss and accuracy to lists
+            lst_loss_train.append(train_err / train_batches)
+            lst_loss_val.append(val_err / val_batches)
+            lst_acc.append(accuracy)
+
+            # Add training loss and
+            # Then we print the results for this epoch:
+            print("Epoch {} of {} took {:.3f}s".format(
+                epoch + 1, num_epochs, time.time() - start_time))
+            print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
+            print("  validation loss:\t\t{:.6f}".format(val_err / val_batches))
+            print("  validation accuracy: {}".format(accuracy))
 
         print("Network trained")
-        return network
+        return network, lst_loss_train, lst_loss_val, lst_acc
 
-    # Code of following function is fully copied from
-    #   https://github.com/Lasagne/Lasagne/tree/master/examples
-    def iterate_minibatches(self, inputs, targets, batchsize, shuffle):
-        assert len(inputs) == len(targets)
-        if shuffle:
-            indices = np.arange(len(inputs))
-            np.random.shuffle(indices)
-        for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
-            if shuffle:
-                excerpt = indices[start_idx:start_idx + batchsize]
-            else:
-                excerpt = slice(start_idx, start_idx + batchsize)
-            yield inputs[excerpt], targets[excerpt]
+
 
     def main(self):
         # load data
@@ -203,5 +217,13 @@ class Network:
         y_val = self.val_labels[val_idxs,i]
 
         # Train network
-        self.train_network(net, X_train, y_train, X_val,
-                    y_val, input_var=input_var)
+        results = self.train_network(net, X_train, y_train, X_val,
+                    y_val, num_epochs=10, input_var=input_var)
+
+        train_loss = results[1]
+        val_loss = results[2]
+        acc = results[3]
+        # Vizualize losses and accuracy
+        viz = V.Visualization()
+        viz.visualize_losses(train_loss,val_loss)
+        viz.visualize_accuracy(acc)
