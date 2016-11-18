@@ -30,7 +30,7 @@ class Network:
 
     def load_data(self):
         print("Loading data")
-        self.train_images = np.float64(np.load(os.path.join(
+        self.train_images = np.float32(np.load(os.path.join(
                 data_path, "train_images_32.npy"))) / 255.0
         self.train_labels = np.uint8(np.load(os.path.join(
                 data_path, "train_labels_32.npy")))
