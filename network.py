@@ -164,17 +164,18 @@ class Network:
                 #val_acc += acc
                 val_batches += 1
 
-            # train_output = get_output(X_train)
-            # train_predictions = np.argmax(train_output, axis=1)
+            train_output = get_output(X_train)
+            train_predictions = np.argmax(train_output, axis=1)
             # print(train_predictions)
             # print(y_train)
+            train_accuracy = np.mean(train_predictions == y_train)
 
             # Compute the network's output on the validation data
             val_output = get_output(X_val)
             # The predicted class is just the index of the largest probability in the output
             val_predictions = np.argmax(val_output, axis=1)
             # The accuracy is the average number of correct predictions
-            accuracy = np.mean(val_predictions == y_train)
+            accuracy = np.mean(val_predictions == y_val)
 
             # Add training loss, validation loss and accuracy to lists
             lst_loss_train.append(train_err / train_batches)
@@ -187,6 +188,7 @@ class Network:
                 epoch + 1, num_epochs, time.time() - start_time))
             print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
             print("  validation loss:\t\t{:.6f}".format(val_err / val_batches))
+            print("  training accuracy: {}".format(train_accuracy))
             print("  validation accuracy: {}".format(accuracy))
 
         print("Network trained")
@@ -207,18 +209,23 @@ class Network:
         i = self.attr_names.index("Male")
 
         # Downsample training data to make it a bit faster for testing this code
-        n_train_samples = 1000
-        n_val_samples = 1000
-        train_idxs = np.random.permutation(self.train_images.shape[0])[:n_train_samples]
-        val_idxs = np.random.permutation(self.val_images.shape[0])[:n_val_samples]
-        X_train = self.train_images[train_idxs]
-        y_train = self.train_labels[train_idxs,i]
-        X_val = self.val_images[val_idxs]
-        y_val = self.val_labels[val_idxs,i]
+##        n_train_samples = 10
+##        n_val_samples = 10
+##        train_idxs = np.random.permutation(self.train_images.shape[0])[:n_train_samples]
+##        val_idxs = np.random.permutation(self.val_images.shape[0])[:n_val_samples]
+##        X_train = self.train_images[train_idxs]
+##        y_train = self.train_labels[train_idxs,i]
+##        X_val = self.val_images[val_idxs]
+##        y_val = self.val_labels[val_idxs,i]
+
+        X_train = self.train_images
+        X_val = self.val_images
+        y_train = self.train_labels[:,i]
+        y_val = self.val_labels[:,i]
 
         # Train network
         results = self.train_network(net, X_train, y_train, X_val,
-                    y_val, num_epochs=10, input_var=input_var)
+                    y_val, num_epochs=20, input_var=input_var)
 
         train_loss = results[1]
         val_loss = results[2]
@@ -227,3 +234,6 @@ class Network:
         viz = V.Visualization()
         viz.visualize_losses(train_loss,val_loss)
         viz.visualize_accuracy(acc)
+
+net = Network()
+net.main()
