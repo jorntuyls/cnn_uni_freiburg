@@ -161,7 +161,6 @@ class Network:
                 inputs, targets = batch
                 err = val(inputs, targets)
                 val_err += err
-                #val_acc += acc
                 val_batches += 1
 
             train_output = get_output(X_train)

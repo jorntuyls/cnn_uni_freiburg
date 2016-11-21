@@ -23,7 +23,7 @@ Each image has an associated 40-dimensional attribute vector. The names of the
 attributes are stored in self.attr_names.
 '''
 
-data_path = "/home/lmb/Celeb_data"
+data_path = "/Users/jorntuyls/Desktop/Celeb_data"#"/home/lmb/Celeb_data"
 
 
 class Network:
@@ -109,7 +109,7 @@ class Network:
         # determinitic = False because we want to use dropout in training
         #   the network
         prediction = lasagne.layers.get_output(network, deterministic=False)
-        loss = lasagne.objectives.categorical_crossentropy(prediction, true_output).mean()
+        loss = lasagne.objectives.binary_crossentropy(prediction, true_output).mean()
 
         # prediction_fn = theano.function([input_var], prediction)
         # loss_fn = theano.function([input_var, true_output], loss)
@@ -119,7 +119,7 @@ class Network:
         # print("y_train: {}".format(y_train))
 
         val_prediction = lasagne.layers.get_output(network, deterministic=True)
-        val_loss = lasagne.objectives.categorical_crossentropy(val_prediction, true_output).mean()
+        val_loss = lasagne.objectives.binary_crossentropy(val_prediction, true_output).mean()
 
         # Get all paramters from the network
         all_params = lasagne.layers.get_all_params(network)
@@ -134,6 +134,10 @@ class Network:
 
         train = theano.function([input_var, true_output], loss, updates=updates)
         val = theano.function([input_var, true_output], val_loss)
+
+        val_acc_calc = T.mean(T.eq(T.argmax(val_prediction, axis=1), true_output),
+                      dtype=theano.config.floatX)
+        val_acc_fn = theano.function([input_var, true_output],[val_acc_calc])
 
         get_output = theano.function([input_var], lasagne.layers.get_output(network, deterministic=True))
 
@@ -161,19 +165,20 @@ class Network:
                 inputs, targets = batch
                 err = val(inputs, targets)
                 val_err += err
+                #acc = val_acc_fn(inputs, targets)
                 #val_acc += acc
                 val_batches += 1
 
             train_output = get_output(X_train)
-            train_predictions = np.argmax(train_output)
-            #print(train_output)
-            #print(y_train)
+            train_predictions = np.round(train_output)
+            # print("train_output: {}".format(train_predictions))
+            # print("y_train: {}".format(y_train))
             train_accuracy = np.mean(train_predictions == y_train)
 
             # Compute the network's output on the validation data
             val_output = get_output(X_val)
             # The predicted class is just the index of the largest probability in the output
-            val_predictions = np.argmax(val_output, axis=1)
+            val_predictions = np.round(val_output)
             # The accuracy is the average number of correct predictions
             accuracy = np.mean(val_predictions == y_val)
 
@@ -188,8 +193,8 @@ class Network:
                 epoch + 1, num_epochs, time.time() - start_time))
             print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
             print("  validation loss:\t\t{:.6f}".format(val_err / val_batches))
-            print("  training accuracy: {}".format(train_accuracy))
-            print("  validation accuracy: {}".format(accuracy))
+            print("  training accuracy: \t\t{:.2f} %".format(train_accuracy * 100))
+            print("  validation accuracy: \t\t{:.2f} %".format(accuracy * 100))
 
         print("Network trained")
         return network, lst_loss_train, lst_loss_val, lst_acc
@@ -209,8 +214,8 @@ class Network:
         i = self.attr_names.index("Male")
 
         # Downsample training data to make it a bit faster for testing this code
-        n_train_samples = 50000
-        n_val_samples = 10000
+        n_train_samples = 1000
+        n_val_samples = 1000
         train_idxs = np.random.permutation(self.train_images.shape[0])[:n_train_samples]
         val_idxs = np.random.permutation(self.val_images.shape[0])[:n_val_samples]
         X_train = self.train_images[train_idxs]

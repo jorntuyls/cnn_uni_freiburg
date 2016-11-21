@@ -17,12 +17,14 @@ class Visualization:
         plt.ylabel("loss")
         #plt.show()
         timestamp = int(time.time())
-        plt.savefig("losses_" + str(timestamp) + ".png")
-        plt.show()
+        plt.savefig("figures/losses_" + str(timestamp) + ".png")
+        #plt.show()
 
     def visualize_accuracy(self, accuracy):
         epochs = [i for i in range(1,len(accuracy)+1)]
         plt.plot(epochs, accuracy, 'bs')
         plt.xlabel("epochs")
         plt.ylabel("accuracy")
-        plt.show()
+        timestamp = int(time.time())
+        plt.savefig("figures/accuracy_" + str(timestamp) + ".png")
+        #plt.show()
