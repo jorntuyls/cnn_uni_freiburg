@@ -86,6 +86,44 @@ class Network:
 
         return network
 
+    def build_cnn_all_attributes(self, input_var=None):
+        # Create input layer of Network
+        network = lasagne.layers.InputLayer(shape=(None,3,32,32),input_var=input_var)
+
+        # Convolutional layer
+        network = lasagne.layers.Conv2DLayer(
+            network, num_filters=10, filter_size=(5, 5), pad='same',
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeNormal(gain='relu'))
+
+        # Max pooling layer
+        network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
+
+        # Convolutional layer
+        network = lasagne.layers.Conv2DLayer(
+            network, num_filters=10, filter_size=(5, 5), pad='same',
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeNormal(gain='relu'))
+
+        # Max pooling layer
+        # After applying this layer, size of volume should be (*,10,8,8)
+        network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
+
+        network = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(network, p=.5),
+            num_units=256,
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeNormal(gain='relu'))
+
+        # Output layer
+        network = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(network, p=.5),
+            num_units=40,
+            nonlinearity=lasagne.nonlinearities.sigmoid,
+            W=lasagne.init.HeNormal(gain='relu'))
+
+        return network
+
     # Code of following function is fully copied from
     #   https://github.com/Lasagne/Lasagne/tree/master/examples
     def iterate_minibatches(self, inputs, targets, batchsize, shuffle):
@@ -101,7 +139,7 @@ class Network:
             yield inputs[excerpt], targets[excerpt]
 
     def train_network(self, network, X_train, y_train, X_val, y_val, input_var,
-                num_epochs=500, batch_size=512, descent_type="sgd"):
+                num_epochs=100, batch_size=512, descent_type="sgd"):
         print("Start training network")
         # Create Theano variable for output vector
         true_output = T.ivector('targets')
@@ -110,13 +148,6 @@ class Network:
         #   the network
         prediction = lasagne.layers.get_output(network, deterministic=False)
         loss = lasagne.objectives.categorical_crossentropy(prediction, true_output).mean()
-
-        # prediction_fn = theano.function([input_var], prediction)
-        # loss_fn = theano.function([input_var, true_output], loss)
-        #
-        # print("Prediction: {}".format(prediction_fn(X_train)))
-        # print("Loss: {}".format(loss_fn(X_train, y_train)))
-        # print("y_train: {}".format(y_train))
 
         val_prediction = lasagne.layers.get_output(network, deterministic=True)
         val_loss = lasagne.objectives.categorical_crossentropy(val_prediction, true_output).mean()
@@ -129,8 +160,10 @@ class Network:
         updates = lasagne.updates.sgd(loss, all_params, learning_rate=0.01)
         if (descent_type=="sgd"):
             pass
-        elif (descent_type=="adagrad"):
-            pass
+        elif (descent_type=="momentum"):
+            updates = lasagne.updates.momentum(loss, all_params, learning_rate=0.01)
+        elif (descent_type=="adam"):
+            updates = lasagne.updates.adam(loss, all_params, learning_rate=0.01)
 
         train = theano.function([input_var, true_output], loss, updates=updates)
         val = theano.function([input_var, true_output], val_loss)
@@ -146,40 +179,49 @@ class Network:
 
             train_err = 0
             train_batches = 0
+            train_acc = 0
             start_time = time.time()
-            for batch in self.iterate_minibatches(X_train, y_train, 10, shuffle=True):
+            for batch in self.iterate_minibatches(X_train, y_train, batch_size, shuffle=True):
                 inputs, targets = batch
-                #print("Output: {}".format(lasagne.layers.get_output(network,X_train).eval()))
-                #print("Targets: {}".format(targets))
+                # Calculate error
                 train_err += train(inputs, targets)
+                # Calculate accuracy of batch
+                train_output = get_output(inputs)
+                train_predictions = np.argmax(train_output, axis=1)
+                train_acc += np.mean(train_predictions == targets)
                 train_batches += 1
 
             val_err = 0
             val_acc = 0
             val_batches = 0
-            for batch in self.iterate_minibatches(X_val, y_val, 10, shuffle=False):
+            for batch in self.iterate_minibatches(X_val, y_val, batch_size, shuffle=False):
                 inputs, targets = batch
                 err = val(inputs, targets)
                 val_err += err
+                # Calculate accuracy of batch
+                val_output = get_output(inputs)
+                # The predicted class is just the index of the largest probability in the output
+                val_predictions = np.argmax(val_output, axis=1)
+                val_acc += np.mean(val_predictions == targets)
                 val_batches += 1
 
-            train_output = get_output(X_train)
-            train_predictions = np.argmax(train_output, axis=1)
-            # print(train_predictions)
-            # print(y_train)
-            train_accuracy = np.mean(train_predictions == y_train)
+            # train_output = get_output(X_train)
+            # train_predictions = np.argmax(train_output, axis=1)
+            # # print(train_predictions)
+            # # print(y_train)
+            # train_accuracy = np.mean(train_predictions == y_train)
 
-            # Compute the network's output on the validation data
-            val_output = get_output(X_val)
-            # The predicted class is just the index of the largest probability in the output
-            val_predictions = np.argmax(val_output, axis=1)
-            # The accuracy is the average number of correct predictions
-            accuracy = np.mean(val_predictions == y_val)
+            # # Compute the network's output on the validation data
+            # val_output = get_output(X_val)
+            # # The predicted class is just the index of the largest probability in the output
+            # val_predictions = np.argmax(val_output, axis=1)
+            # # The accuracy is the average number of correct predictions
+            # accuracy = np.mean(val_predictions == y_val)
 
             # Add training loss, validation loss and accuracy to lists
             lst_loss_train.append(train_err / train_batches)
             lst_loss_val.append(val_err / val_batches)
-            lst_acc.append(accuracy)
+            lst_acc.append(val_acc / val_batches * 100)
 
             # Add training loss and
             # Then we print the results for this epoch:
@@ -187,52 +229,192 @@ class Network:
                 epoch + 1, num_epochs, time.time() - start_time))
             print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
             print("  validation loss:\t\t{:.6f}".format(val_err / val_batches))
-            print("  training accuracy: {}".format(train_accuracy))
-            print("  validation accuracy: {}".format(accuracy))
+            print("  training accuracy: \t\t{:.2f} %".format(train_acc / train_batches * 100))
+            print("  validation accuracy: \t\t{:.2f} %".format(val_acc / val_batches * 100))
 
         print("Network trained")
         return network, lst_loss_train, lst_loss_val, lst_acc
 
+    def train_network_all_attributes(self, network, X_train, y_train, X_val, y_val, input_var,
+                num_epochs=100, batch_size=512, descent_type="sgd"):
+        print("Start training network")
+        # Create Theano variable for output vector
+        true_output = T.imatrix('targets')
+
+        # determinitic = False because we want to use dropout in training
+        #   the network
+        prediction = lasagne.layers.get_output(network, deterministic=False)
+        loss = lasagne.objectives.binary_crossentropy(prediction, true_output).mean()
+
+        val_prediction = lasagne.layers.get_output(network, deterministic=True)
+        val_loss = lasagne.objectives.binary_crossentropy(val_prediction, true_output).mean()
+
+        # Get all paramters from the network
+        all_params = lasagne.layers.get_all_params(network)
+
+        # Use different techniques for updates
+        # The standard technique is Stochastic Gradient Descent
+        updates = lasagne.updates.sgd(loss, all_params, learning_rate=0.01)
+        if (descent_type=="sgd"):
+            pass
+        elif (descent_type=="momentum"):
+            updates = lasagne.updates.momentum(loss, all_params, learning_rate=0.01)
+        elif (descent_type=="adam"):
+            updates = lasagne.updates.adam(loss, all_params, learning_rate=0.01)
+
+        train = theano.function([input_var, true_output], loss, updates=updates)
+        val = theano.function([input_var, true_output], val_loss)
+
+        get_output = theano.function([input_var], lasagne.layers.get_output(network, deterministic=True))
+
+        # Keep track of training loss, validation loss and validation accuracy for
+        #   visualization purposes
+        lst_loss_train = []
+        lst_loss_val = []
+        lst_acc = []
+        for epoch in range(num_epochs):
+
+            train_err = 0
+            train_batches = 0
+            train_acc = 0
+            start_time = time.time()
+            for batch in self.iterate_minibatches(X_train, y_train, batch_size, shuffle=True):
+                inputs, targets = batch
+                # Calculate batch error
+                train_err += train(inputs, targets)
+                # calculate batch accuracy
+                train_output = get_output(inputs)
+                train_predictions = np.round(train_output)
+                train_acc += np.mean(train_predictions == targets)
+                train_batches += 1
+
+            val_err = 0
+            val_acc = 0
+            val_batches = 0
+            for batch in self.iterate_minibatches(X_val, y_val, batch_size, shuffle=False):
+                inputs, targets = batch
+                # Calculate batch error
+                val_err += val(inputs, targets)
+                # Calculate batch accuracy
+                val_output = get_output(inputs)
+                val_predictions = np.round(val_output)
+                val_acc += np.mean(val_predictions == targets)
+                val_batches += 1
+
+            # Add training loss, validation loss and accuracy to lists
+            lst_loss_train.append(train_err / train_batches)
+            lst_loss_val.append(val_err / val_batches)
+            lst_acc.append(val_acc / val_batches * 100)
+
+            # Add training loss and
+            # Then we print the results for this epoch:
+            print("Epoch {} of {} took {:.3f}s".format(
+                epoch + 1, num_epochs, time.time() - start_time))
+            print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
+            print("  validation loss:\t\t{:.6f}".format(val_err / val_batches))
+            print("  training accuracy: \t\t{:.2f} %".format(train_acc / train_batches * 100))
+            print("  validation accuracy: \t\t{:.2f} %".format(val_acc / val_batches * 100))
+
+        print("Network trained")
+        return network, lst_loss_train, lst_loss_val, lst_acc
+
+    def get_accuracy_all_attributes(self, network, X, y, batch_size=512):
+        get_output = theano.function([input_var], lasagne.layers.get_output(network, deterministic=True))
+
+        batches = 0
+        acc = 0
+        for batch in self.iterate_minibatches(X, y, batch_size, shuffle=False):
+            inputs, targets = batch
+            # Calculate batch accuracy
+            output = get_output(inputs)
+            predictions = np.round(output)
+            acc  += np.mean(predictions = targets)
+            batches += 1
+
+        print("  accuracy: \t\t{:.2f} %".format(acc / batches * 100))
+        return acc / batches * 100
+
+    def get_accuracy(self, network, X, y, batch_size=512):
+        get_output = theano.function([input_var], lasagne.layers.get_output(network, deterministic=True))
+
+        batches = 0
+        acc = 0
+        for batch in self.iterate_minibatches(X, y, batch_size, shuffle=False):
+            inputs, targets = batch
+            # Calculate batch accuracy
+            output = get_output(inputs)
+            predictions = np.round(output)
+            acc  += np.mean(predictions = targets)
+            batches += 1
+
+        print("  accuracy: \t\t{:.2f} %".format(acc / batches * 100))
+        return acc / batches * 100
 
 
-    def main(self):
+    def main(self, attribute="all"):
         # load data
         self.load_data()
 
         # Create a Theano tensor for a 4 dimensional ndarray
         input_var = T.tensor4('inputs')
-        # Create network
-        net = self.build_cnn(input_var)
 
-        # Get index of attribute "Male" in attribute list
-        i = self.attr_names.index("Male")
+        results = None
+        if (attribute == "all"):
+            # Create network
+            net = self.build_cnn_all_attributes(input_var)
 
-        # Downsample training data to make it a bit faster for testing this code
-##        n_train_samples = 10
-##        n_val_samples = 10
-##        train_idxs = np.random.permutation(self.train_images.shape[0])[:n_train_samples]
-##        val_idxs = np.random.permutation(self.val_images.shape[0])[:n_val_samples]
-##        X_train = self.train_images[train_idxs]
-##        y_train = self.train_labels[train_idxs,i]
-##        X_val = self.val_images[val_idxs]
-##        y_val = self.val_labels[val_idxs,i]
+            # Downsample training data to make it a bit faster for testing this code
+            n_train_samples = 1000
+            n_val_samples = 1000
+            train_idxs = np.random.permutation(self.train_images.shape[0])[:n_train_samples]
+            val_idxs = np.random.permutation(self.val_images.shape[0])[:n_val_samples]
+            X_train = self.train_images[train_idxs]
+            y_train = self.train_labels[train_idxs]
+            X_val = self.val_images[val_idxs]
+            y_val = self.val_labels[val_idxs]
 
-        X_train = self.train_images
-        X_val = self.val_images
-        y_train = self.train_labels[:,i]
-        y_val = self.val_labels[:,i]
+            # X_train = self.train_images
+            # X_val = self.val_images
+            # y_train = self.train_labels
+            # y_val = self.val_labels
 
-        # Train network
-        results = self.train_network(net, X_train, y_train, X_val,
-                    y_val, num_epochs=20, input_var=input_var)
+            # Train network
+            results = self.train_network_all_attributes(net, X_train, y_train, X_val,
+                        y_val, num_epochs=10, batch_size=10, input_var=input_var)
+        else:
+            # Create network
+            net = self.build_cnn(input_var)
 
-        train_loss = results[1]
-        val_loss = results[2]
-        acc = results[3]
-        # Vizualize losses and accuracy
-        viz = V.Visualization()
-        viz.visualize_losses(train_loss,val_loss)
-        viz.visualize_accuracy(acc)
+            # Get index of attribute "Male" in attribute list
+            i = self.attr_names.index(attribute)
+
+            # Downsample training data to make it a bit faster for testing this code
+            n_train_samples = 10
+            n_val_samples = 10
+            train_idxs = np.random.permutation(self.train_images.shape[0])[:n_train_samples]
+            val_idxs = np.random.permutation(self.val_images.shape[0])[:n_val_samples]
+            X_train = self.train_images[train_idxs]
+            y_train = self.train_labels[train_idxs,i]
+            X_val = self.val_images[val_idxs]
+            y_val = self.val_labels[val_idxs,i]
+
+            #X_train = self.train_images
+            #X_val = self.val_images
+            #y_train = self.train_labels[:,i]
+            #y_val = self.val_labels[:,i]
+
+            # Train network
+            results = self.train_network(net, X_train, y_train, X_val,
+                        y_val, num_epochs=20, batch_size=10, input_var=input_var)
+
+        if results:
+            train_loss = results[1]
+            val_loss = results[2]
+            acc = results[3]
+            # Vizualize losses and accuracy
+            viz = V.Visualization()
+            viz.visualize_losses(train_loss,val_loss)
+            viz.visualize_accuracy(acc)
 
 net = Network()
-net.main()
+net.main("Male")
