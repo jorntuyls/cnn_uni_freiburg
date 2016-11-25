@@ -87,20 +87,23 @@ class SigmoidNetwork(Network):
         print("Network trained")
         return network, lst_loss_train, lst_loss_val, lst_acc
 
-    def main(self, train_attribute="all", name="",
-                    downsample_x=None, downsample_y=None):
-        self.main( train_attribute="all", test_attribute=None,
-                    downsample_x=downsample_x, downsample_y=downsample_y)
+    def main(self, train_attribute="all", num_epochs=100,
+                    batch_size=512, name="sigmoid",
+                    downsample_train=None, downsample_val=None):
+        self.main( train_attribute="all", test_attribute=None, num_epochs=num_epochs,
+                    batch_size=batch_size, name=name,
+                    downsample_train=downsample_train, downsample_val=downsample_val)
 
-    def main(self, train_attribute="all", test_attribute=None, name="sigmoid",
-                downsample_x=None, downsample_y=None):
+    def main(self, train_attribute="all", test_attribute=None, num_epochs=100,
+                batch_size=512, name="sigmoid",
+                downsample_train=None, downsample_val=None):
         # load data
         self.load_data()
 
-        if(downsample_x and downsample_y):
+        if(downsample_train and downsample_val):
             # Downsample training data to make it a bit faster for testing this code
-            n_train_samples = downsample_x
-            n_val_samples = downsample_y
+            n_train_samples = downsample_train
+            n_val_samples = downsample_val
             train_idxs = np.random.permutation(self.train_images.shape[0])[:n_train_samples]
             val_idxs = np.random.permutation(self.val_images.shape[0])[:n_val_samples]
             X_train = self.train_images[train_idxs]
@@ -127,19 +130,19 @@ class SigmoidNetwork(Network):
 
             # Train network
             results = self.train_network(net, X_train, y_train, X_val,
-                        y_val, num_epochs=10, batch_size=10, input_var=input_var,
+                        y_val, num_epochs=num_epochs, batch_size=batch_size, input_var=input_var,
                         objective_function="binary_crossentropy")
 
             network = results[0]
 
-            test_acc = self.get_accuracy(network, input_var, X_test, y_test, batch_size=10)
+            test_acc = self.get_accuracy(network, input_var, X_test, y_test, batch_size=batch_size)
             print("  Test accuracy full: \t\t{:.2f} %".format(test_acc))
 
             test_acc_col = 0
             if (test_attribute):
                 # Get index of attribute 'test_attribute' in attribute list
                 i = self.attr_names.index(test_attribute)
-                test_acc_col = self.get_accuracy(network, input_var, X_test, y_test, column=i, batch_size=10)
+                test_acc_col = self.get_accuracy(network, input_var, X_test, y_test, batch_size=batch_size, column=i)
                 print("  Test accuracy column: {} : \t\t{:.2f} %".format(test_attribute, test_acc_col))
 
             f = open('test_accuracy','a')
@@ -159,13 +162,13 @@ class SigmoidNetwork(Network):
 
             # Train network
             results = self.train_network(net, X_train, y_train, X_val,
-                        y_val, num_epochs=20, batch_size=10, input_var=input_var,
+                        y_val, num_epochs=num_epochs, batch_size=batch_size, input_var=input_var,
                         objective_function="binary_crossentropy")
 
             network = results[0]
 
             # Calculate test accuracy
-            test_acc = self.get_accuracy(network, input_var, X_test, y_test, batch_size=10)
+            test_acc = self.get_accuracy(network, input_var, X_test, y_test, batch_size=batch_size)
             print("  Test accuracy: \t\t{:.2f} %".format(test_acc))
 
             f = open('test_accuracy','a')

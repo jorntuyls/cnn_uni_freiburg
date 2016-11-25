@@ -8,20 +8,26 @@ from softmax_network import SoftmaxNetwork
 net = SigmoidNetwork()
 net.main(   train_attribute="all",
             test_attribute="Male",
+            num_epochs=10,
+            batch_size=10,
             name="sigmoid_all_male",
-            downsample_x=1000,
-            downsample_y=1000)
+            downsample_train=10,
+            downsample_val=10)
 
 # train sigmoid network on one attribute "Male"
 net = SigmoidNetwork()
 net.main(   train_attribute="Male",
+            num_epochs=10,
+            batch_size=10,
             name="sigmoid_male",
-            downsample_x=1000,
-            downsample_y=1000)
+            downsample_train=10,
+            downsample_val=10)
 
 # train softmax network for one attribute "Male"
 net = SoftmaxNetwork()
 net.main(   train_attribute="Male",
+            num_epochs=10,
+            batch_size=10,
             name="softmax_male",
-            downsample_x=1000,
-            downsample_y=1000)
+            downsample_train=10,
+            downsample_val=10)

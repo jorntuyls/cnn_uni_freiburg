@@ -103,14 +103,15 @@ class SoftmaxNetwork(Network):
         print("  Test accuracy: \t\t{:.2f} %".format(acc / batches * 100))
         return acc / batches * 100
 
-    def main(self, train_attribute, name="softmax", downsample_x=None, downsample_y=None):
+    def main(self, train_attribute, num_epochs=100, batch_size=512, name="softmax",
+                    downsample_train=None, downsample_val=None):
         # load data
         self.load_data()
 
-        if(downsample_x and downsample_y):
+        if(downsample_train and downsample_val):
             # Downsample training data to make it a bit faster for testing this code
-            n_train_samples = downsample_x
-            n_val_samples = downsample_y
+            n_train_samples = downsample_train
+            n_val_samples = downsample_val
             train_idxs = np.random.permutation(self.train_images.shape[0])[:n_train_samples]
             val_idxs = np.random.permutation(self.val_images.shape[0])[:n_val_samples]
             X_train = self.train_images[train_idxs]
@@ -144,12 +145,12 @@ class SoftmaxNetwork(Network):
 
         # Train network
         results = self.train_network(net, X_train, y_train, X_val,
-                    y_val, num_epochs=10, batch_size=10, input_var=input_var)
+                    y_val, num_epochs=num_epochs, batch_size=batch_size, input_var=input_var)
 
         network = results[0]
 
         # Calculate test accuracy
-        test_acc = self.get_accuracy(network, input_var, X_test, y_test, batch_size=10)
+        test_acc = self.get_accuracy(network, input_var, X_test, y_test, batch_size=batch_size)
 
         train_loss = results[1]
         val_loss = results[2]

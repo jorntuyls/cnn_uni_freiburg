@@ -24,7 +24,7 @@ Each image has an associated 40-dimensional attribute vector. The names of the
 attributes are stored in self.attr_names.
 '''
 
-data_path = "/Users/jorntuyls/Desktop/Celeb_data"#"/home/lmb/Celeb_data"
+data_path = "/home/lmb/Celeb_data"
 
 
 class Network:
@@ -187,8 +187,8 @@ class Network:
         return
 
     @abc.abstractmethod
-    def main(self, train_attribute, name="",
-                    downsample_x=None, downsample_y=None):
+    def main(self, train_attribute, num_epochs=100, batch_size=512, name="",
+                    downsample_train=None, downsample_val=None):
         '''
             Main method should be implemented at subclass level
         '''
