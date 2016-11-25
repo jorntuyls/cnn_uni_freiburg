@@ -67,7 +67,7 @@ class Network:
 
         # Convolutional layer
         network = lasagne.layers.Conv2DLayer(
-            network, num_filters=10, filter_size=(5, 5), pad='same',
+            network, num_filters=32, filter_size=(5, 5), pad='same',
             nonlinearity=lasagne.nonlinearities.rectify,
             W=lasagne.init.HeNormal(gain='relu'))
 
@@ -76,7 +76,16 @@ class Network:
 
         # Convolutional layer
         network = lasagne.layers.Conv2DLayer(
-            network, num_filters=10, filter_size=(5, 5), pad='same',
+            network, num_filters=32, filter_size=(5, 5), pad='same',
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeNormal(gain='relu'))
+
+        # Max pooling layer
+        network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
+
+        # Convolutional layer
+        network = lasagne.layers.Conv2DLayer(
+            network, num_filters=32, filter_size=(5, 5), pad='same',
             nonlinearity=lasagne.nonlinearities.rectify,
             W=lasagne.init.HeNormal(gain='relu'))
 
