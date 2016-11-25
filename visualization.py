@@ -8,7 +8,7 @@ The visualization class is responsible for visualizing
 
 class Visualization:
 
-    def visualize_losses(self, train_loss, val_loss):
+    def visualize_losses(self, train_loss, val_loss, name="", timestamp=0):
         assert(len(train_loss) == len(val_loss))
         epochs = [i for i in range(1,len(train_loss)+1)]
         plt.figure("loss")
@@ -16,16 +16,14 @@ class Visualization:
         plt.plot(epochs, val_loss, 'ro', label="validation loss")
         plt.xlabel("epochs")
         plt.ylabel("loss")
-        timestamp = int(time.time())
-        plt.savefig("figures/losses_" + str(timestamp) + ".png")
-        #plt.show()
+        plt.savefig("figures/losses_" + name + "_" +  str(timestamp) + ".png")
+        plt.show()
 
-    def visualize_accuracy(self, accuracy):
+    def visualize_accuracy(self, accuracy, name="", timestamp=0):
         epochs = [i for i in range(1,len(accuracy)+1)]
         plt.figure("accuracy")
         plt.plot(epochs, accuracy, 'bs')
         plt.xlabel("epochs")
         plt.ylabel("accuracy")
-        timestamp = int(time.time())
-        plt.savefig("figures/accuracy_" + str(timestamp) + ".png")
-        #plt.show()
+        plt.savefig("figures/accuracy_" + name + "_" + str(timestamp) + ".png")
+        plt.show()
