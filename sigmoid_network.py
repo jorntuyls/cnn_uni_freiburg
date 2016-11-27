@@ -7,7 +7,6 @@ import theano.tensor as T
 import lasagne
 
 from network import Network
-import visualization as V
 
 class SigmoidNetwork(Network):
 
@@ -127,7 +126,7 @@ class SigmoidNetwork(Network):
         if (train_attribute == "all"):
             # Create network
             net = self.build_cnn(num_outputs=40, output_nonlinearity="sigmoid", input_var=input_var)
-            print(X_train.shape)
+
             # Train network
             results = self.train_network(net, X_train, y_train, X_val,
                         y_val, num_epochs=num_epochs, batch_size=batch_size, input_var=input_var,
@@ -176,10 +175,13 @@ class SigmoidNetwork(Network):
             f.close()
 
         if results:
+            net = results[0]
             train_loss = results[1]
             val_loss = results[2]
             acc = results[3]
-            # Vizualize losses and accuracy
-            viz = V.Visualization()
-            viz.visualize_losses(train_loss,val_loss, name=name, timestamp=self.timestamp)
-            viz.visualize_accuracy(acc, name=name, timestamp=self.timestamp)
+
+            self.visualize_losses(train_loss, val_loss, name=name, timestamp=self.timestamp)
+
+            self.visualize_accuracy(acc, name=name, timestamp=self.timestamp)
+
+            self.visualize_filters(net, layer=0, name=name, timestamp=self.timestamp)

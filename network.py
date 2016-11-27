@@ -31,6 +31,7 @@ class Network:
 
     def __init__(self):
         self.timestamp = int(time.time())
+        self.viz = V.Visualization()
 
     def new_timestamp(self):
         self.timestamp = int(time.time())
@@ -185,6 +186,17 @@ class Network:
             batches += 1
 
         return acc / batches * 100
+
+    def visualize_losses(self, train_loss, val_loss, name="", timestamp=0):
+        self.viz.visualize_losses(train_loss, val_loss, name=name, timestamp=timestamp)
+
+    def visualize_accuracy(self, accuracy, name="", timestamp=0):
+        self.viz.visualize_accuracy(accuracy, name=name, timestamp=timestamp)
+
+    def visualize_filters(self, network, layer=0, name="", timestamp=0):
+        params = lasagne.layers.get_all_param_values(network)
+        filters_FC1 = params[0]
+        self.viz.visualize_filters(filters_FC1, name=name, timestamp=timestamp)
 
     @abc.abstractmethod
     def train_network(self, network, X_train, y_train, X_val, y_val, input_var,

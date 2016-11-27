@@ -2,10 +2,11 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import numpy as np
 import time
 
 '''
-The visualization class is responsible for visualizing
+The visualization class is responsible for visualizing results from training a cnn
 '''
 
 class Visualization:
@@ -28,4 +29,18 @@ class Visualization:
         plt.xlabel("epochs")
         plt.ylabel("accuracy")
         plt.savefig("figures/accuracy_" + name + "_" + str(timestamp) + ".png")
+        plt.show()
+
+
+    def visualize_filters(self, filters, name="", timestamp=0):
+        plt.figure("filters")
+        num_filters = filters.shape[0]
+        for i in range(num_filters):
+            plt.subplot(num_filters/10 + 1, 10, i+1)
+            temp = filters[i]
+            temp_trans = np.abs(temp.transpose())
+            plt.imshow(temp_trans*255)
+            plt.axis('off')
+        plt.tight_layout(pad=-1.0, w_pad=0, h_pad=-3.0)
+        plt.savefig("figures/filters_" + name + "_" + str(timestamp) + ".png", bbox_inches='tight')
         plt.show()

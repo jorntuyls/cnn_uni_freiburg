@@ -155,10 +155,12 @@ class SoftmaxNetwork(Network):
         train_loss = results[1]
         val_loss = results[2]
         acc = results[3]
-        # Vizualize losses and accuracy
-        viz = V.Visualization()
-        viz.visualize_losses(train_loss,val_loss, name=name, timestamp=self.timestamp)
-        viz.visualize_accuracy(acc, name=name, timestamp=self.timestamp)
+
+        self.visualize_losses(train_loss, val_loss, name=name, timestamp=self.timestamp)
+
+        self.visualize_accuracy(acc, name=name, timestamp=self.timestamp)
+
+        self.visualize_filters(net, layer=0, name=name, timestamp=self.timestamp)
 
         print("  Test accuracy: \t\t{:.2f} %".format(test_acc))
         f = open('test_accuracy','a')
