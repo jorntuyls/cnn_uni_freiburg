@@ -24,7 +24,7 @@ Each image has an associated 40-dimensional attribute vector. The names of the
 attributes are stored in self.attr_names.
 '''
 
-data_path = "/Users/jorntuyls/Desktop/Celeb_data"#"/home/lmb/Celeb_data"
+data_path = "/home/lmb/Celeb_data"
 
 
 class Network:
