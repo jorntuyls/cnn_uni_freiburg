@@ -24,7 +24,7 @@ Each image has an associated 40-dimensional attribute vector. The names of the
 attributes are stored in self.attr_names.
 '''
 
-data_path = "/home/lmb/Celeb_data"
+data_path = "/Users/jorntuyls/Desktop/Celeb_data"#"/home/lmb/Celeb_data"
 
 
 class Network:
@@ -82,27 +82,18 @@ class Network:
             W=lasagne.init.HeNormal(gain='relu'))
 
         # Max pooling layer
-        network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
-
-        # Convolutional layer
-        network = lasagne.layers.Conv2DLayer(
-            network, num_filters=32, filter_size=(5, 5), pad='same',
-            nonlinearity=lasagne.nonlinearities.rectify,
-            W=lasagne.init.HeNormal(gain='relu'))
-
-        # Max pooling layer
         # After applying this layer, size of volume should be (*,10,8,8)
         network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
         network = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(network, p=.5),
+            lasagne.layers.dropout(network, p=.1),
             num_units=256,
             nonlinearity=lasagne.nonlinearities.rectify,
             W=lasagne.init.HeNormal(gain='relu'))
 
         # Output layer
         network = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(network, p=.5),
+            lasagne.layers.dropout(network, p=.1),
             num_units=num_outputs,
             nonlinearity=self.get_nonlinearity(output_nonlinearity),
             W=lasagne.init.HeNormal(gain='relu'))
