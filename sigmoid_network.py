@@ -127,11 +127,11 @@ class SigmoidNetwork(Network):
         if (train_attribute == "all"):
             # Create network
             net = self.build_cnn(num_outputs=40, output_nonlinearity="sigmoid", input_var=input_var)
-
+            print(X_train.shape)
             # Train network
             results = self.train_network(net, X_train, y_train, X_val,
                         y_val, num_epochs=num_epochs, batch_size=batch_size, input_var=input_var,
-                        objective_function="binary_crossentropy")
+                                         objective_function="binary_crossentropy",descent_type="momentum")
 
             network = results[0]
 
