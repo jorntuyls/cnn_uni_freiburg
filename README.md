@@ -6,18 +6,18 @@ An implementation of a convolutional neural network (cnn) for classifying images
 
 Install setuptools (Mac OS X)
 
-'''
+```
 curl https://bootstrap.pypa.io/ez_setup.py -o - | python
-'''
+```
 
 Install requirements
 
-'''
+```
 pip install -r requirements.txt
-'''
+```
 
 ## Train cnn on celebA dataset
 
-'''
+```
 python run.py
-'''
+```
